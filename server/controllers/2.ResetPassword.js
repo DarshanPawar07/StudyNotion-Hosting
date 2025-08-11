@@ -43,7 +43,7 @@ exports.resetPasswordToken=async(req,res)=>{
                                                      );
 
     // create url
-    const url=`https://localhost:3000/update-password/${randomString}`
+    const url=`https://study-notion-frontend-theta-two.vercel.app/update-password/${randomString}`
       /* 3000 port number par frontend cha; rha hai aur 4000 par backend 
           hum url mei ye bata rhe hai ki 3000 port par mtlb frontend par ek url generate karo jiska link aisa aisa hoga 
           aur usmei diffrentating factor hpga "randomString" jisko hum "crypto" naam ki library se lekar aayenge */                                                 
