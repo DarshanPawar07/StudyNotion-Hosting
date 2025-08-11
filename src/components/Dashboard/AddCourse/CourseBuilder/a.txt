@@ -1,0 +1,199 @@
+const CourseBuilderForm=()=>{
+
+     
+      const {register,handleSubmit,setValue,formState:{errors}}=useForm();
+      /* add a section button hai usmei humei 2 type ke text dikhane hai "edit section" ya fir "add a section" to 
+      uss editSection ke state ko save krne ke liye ye state variable banaya hai*/
+      const [editSectionName,setEditSectionName]=useState(null);
+
+      // canacel edit btn par click krne se kya hoga uski functionalites iss function mei hai
+     const cancelEdit=()=>{
+                 setEditSectionName(null);
+                 setValue("sectionName","");
+
+     }
+
+
+      // NESTED VIEW banane ke liye "course" ki value lagegi
+      const {course} =useSelector((state)=>state.course);
+
+      const dispatch=useDispatch();
+
+
+      const goBack=()=>{
+                 
+             // go back se mei step 1 par jaunga jaha par "editCourse" ka jo flag tha ussey "true" mark kar dunga
+             /* jab step2 se step1 par aaoge to step1 par aapne course create kiya hai aur uski entry DB mei store 
+                kr di hai ab jab go back ka function call hoga to ussi course details ko edit krne vaali API ko call karoge aap */ 
+
+                dispatch(setStep(1));
+                dispatch(setEditCourse(true));
+      }
+
+      const goToNext=()=>{
+              
+            /* next tabhi jaa paoge jab pehele se atleast aapne ek section create krr rakha ho to uska validation lagana bahot jaruri hai*/
+             if(course.courseContent.length ===0)
+                 {
+                      toast.error("Please Add atleast One Section");
+                      return;
+                }
+             
+            // agar kisi section ke andar subsection ki length zero hui to tabhi aap next button use nhi kr skte 
+            if(course.courseContent.some((section)=>section.subSection.length === 0))
+                 {    
+                      toast.error("Please Add atleast One Lecture in each section");
+                      return;
+                     
+                 }
+
+
+          // if everything is good go to next step after clicking on next button
+          dispatch(setStep(3));
+            
+      }
+
+      const handleChangeEditSectionName=(sectionId,sectionName)=>{
+            
+              if(editSectionName===sectionId)
+                  {
+                        // toggele kr do
+                        cancelEdit();
+                        return;
+                  }
+
+              setEditSectionName(sectionId);
+              setValue("sectionName",sectionName);
+      }
+
+
+
+      // FORM KA HANDLE SUBMIT BUTTON - iska mtlb createSection waala button press ho jaaye ya fir editSection waala button press ho jaaye - iska mtlb iss function se section create bhi ho jaaye aur edit bhi ho jaaye 
+      const [loading,setLoading] =useState(false);
+      let result;
+      const {token}=useSelector((state)=>state.auth);
+
+      const onSubmit=async(data)=>{
+                 
+               setLoading(true);
+
+             // if we are editing section 
+              if(editSectionName)
+                  {
+                         // then edit waali api call hogi
+                         result = await updateSection({
+                               sectionName:data.sectionName,
+                               sectionId:editSectionName,
+                               courseId:course._id
+                         }, token
+                    )
+                  }   
+                  
+             // else jab create section wala button press/hit hu hai
+             else{
+                  
+                 console.log("going inisde creating section in function");
+                result=await createSection({
+                    
+                     sectionName:data.sectionName,
+                     courseId:course._id,
+                },token)
+             }
+            
+
+             // update values since you have added/edited section above
+               if(result)
+                 {
+                      dispatch(setCourse(result));
+                      setEditSectionName(null);
+                      setValue("sectionName","")
+                      console.log("section created")
+                 }
+                  
+
+             //  loading false
+              setLoading(false);
+       }
+
+ 
+     return(
+          
+      <div className="space-y-8 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6">
+
+            <p className="text-2xl font-semibold text-richblack-5">Course Builder</p>
+
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+                          <div className="flex flex-col space-y-2">
+
+                              <label className="text-sm text-richblack-5" htmlFor="sectionName">
+                                        Section Name <sup className="text-pink-200">*</sup>
+                              </label>
+
+                              <input id="sectionName" disabled={loading} placeholder="Add a section to build your course"
+                                     {...register("sectionName", { required: true })} className="form-style w-full"/>
+                               
+                                  {  errors.sectionName && ( <span className="ml-2 text-xs tracking-wide text-pink-200">
+                                                                        Section name is required
+                                                              </span> )
+                                  }
+                          </div>
+
+                          <div className="flex items-end gap-x-4">
+
+                               <IconBtn type="submit" disabled={loading}
+                                         /*  iss button ke andar 2 tarah ke text honge a) Create section agar user ne edit section button par click nhi kiya to
+                                             b) edit section agar user ne "edit section" click kiya to hence humne ek edit section naam ka state variable
+                                             bana diya jismei editSection ki value rakhenge aur fir uss basis par decide karenge konsa btn dikhana hai */
+
+                                        text={editSectionName ? "Edit Section Name" : "Create Section"}
+                                        outline={true}>
+
+                                       <IoAddCircleOutline size={20} className="text-yellow-50" />
+                                </IconBtn>
+                                  
+                                     
+                                {   /* agar edit ka btn aa rha hai to uske saath saath ek cancel edit ka bhi button aata 
+                                        hai vo btn dispaly krne ke liye code*/
+                                     editSectionName && ( <button type="button" onClick={cancelEdit}
+                                                               className="text-sm text-richblack-300 underline">
+                                                               Cancel Edit
+                                                       </button>
+                                                     )   
+                                }
+
+                         </div>
+
+                  </form>
+                    
+                   {/* NESTED VIEW -  iske baad hum */}
+                   {/* NESTED VIEW - mei kya dikhana hai sections, right to sections kaha the? course ke andar ek feild thi 
+                        "courseContent" naam ki feild thi jiske andar "section" naam ki ek cheez thi aur "section" ke andar 
+                        "subSection" naam ki ek cheez thi jiske andar video lectures padey hue the */}
+
+                 {
+                      course.courseContent.length > 0 && (
+                              <NestedView handleChangeEditSectionName={handleChangeEditSectionName} />
+                       )
+                 }
+
+               {/* Next Prev Button */}
+
+               <div className="flex justify-end gap-x-3">
+
+                   <button onClick={goBack}
+                           className={`flex cursor-pointer items-center gap-x-2 rounded-md bg-richblack-300 py-[8px] px-[20px] font-semibold text-richblack-900`}>
+                            Back
+                     </button>
+
+                    <IconBtn disabled={loading} text="Next" onclick={goToNext}>
+                            <MdNavigateNext />
+
+                    </IconBtn>
+               </div>
+    </div>
+
+     )
+}
+
+export default CourseBuilderForm;
